@@ -1,0 +1,50 @@
+### If the third-party user runs the yaml file (docker-compose -f apisql.yaml up -d), first of all it will be downloads the two images.
+### Then automatically run's it into their containers inside of specific network -> app-network.
+### We should share the file into multiple corporate departments to run the file.
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:latest
+    container_name: mssql-server
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SERVER_PASS}
+    ports:
+      - "1433:1433"
+    networks:
+      - app-network
+    volumes:
+      # we attached the data folder from linux VM with the folder of container to keep the consistensy of data into the database
+      # - mssql_data:/var/opt/mssql
+
+      - dockerapi_mssql_data:/var/opt/mssql
+
+
+  fastapi:
+    ### if we didn't store the image into remote repo (as Docker Hub) then we can set this statement instead of image, and deposit the yaml file into folder with the .py and Dockerfile to run it:
+    #build: .
+    image: manoliszaxa/mydockerapi
+    container_name: mydockerapi
+    ports:
+      - "3000:3000"
+    ### the above property means that the running of the api it comes always after the running of the db, because the api depends of db, if the api runs before db service then we will get an error.
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+
+
+networks:
+  app-network:
+    driver: bridge
+
+
+### if the volume is new then we should set the following statements
+# volumes:
+#   mssql_data:
+
+### if the volume already exists (maybe has created from another developer) and we want to attach and retrieve the existing data from the folder into the linux VM we should set the following statement
+volumes:
+  dockerapi_mssql_data:
+    external: true
